@@ -13,10 +13,10 @@ inifile = require('inifile')
 
 -- Read config params
 config = inifile.parse('../config.ini')
-snapshot_params = config['QPlan Snapshot Service']
+snapshot_params = config['Mobile Snapshot Service']
 local host = snapshot_params['host']
 local port = snapshot_params['request_port']
 
--- Pull the latest data from the QPlan snapshot service
+-- Pull the latest data from the Mobile snapshot service
 Router.set_snapshot_params(host, port)
 Router.update_data()

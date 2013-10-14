@@ -1,0 +1,11 @@
+/* ============================================================================
+ * Body-wide styling
+ */
+body {
+        font-family: "Courier New", Courier, "Lucida Sans Typewriter", "Lucida Typewriter", monospace
+}
+
+.todo {
+        font-style: italic;
+}
+

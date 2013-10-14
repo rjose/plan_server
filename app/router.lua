@@ -12,6 +12,7 @@ local json = require('json')
 local zmq = require('zmq')
 
 local m_qplan = {}
+
 local m_snapshot_host = nil
 local m_snapshot_port = nil
 local context = zmq.init()
@@ -28,6 +29,18 @@ function Router.set_snapshot_params(host, port)
         m_snapshot_port = port
 end
 
+function get_app_data(socket, header)
+        socket:send(header)
+        local data, err = socket:recv()
+        local streams = StackStream.unstack(data:split("\n"))
+
+        local keyed_streams = {}
+        for k, v in pairs(streams) do
+                keyed_streams[v.header] = v.lines
+        end
+        return keyed_streams
+end
+
 --------------------------------------------------------------------------------
 -- Updates qplan data that the router serves.
 --
@@ -36,20 +49,13 @@ end
 function Router.update_data()
         local socket = context:socket(zmq.REQ)
         socket:connect(string.format("tcp://%s:%d", m_snapshot_host, m_snapshot_port))
-        socket:send("=====GET qplan app")
-        local data, err = socket:recv()
-        local streams = StackStream.unstack(data:split("\n"))
-        
-        local keyed_streams = {}
-        for k, v in pairs(streams) do
-                keyed_streams[v.header] = v.lines
-        end
-        
-        -- Parse data and store SHA of data version
-        m_qplan = QPlanParser.parseLines(keyed_streams["data"])
-        m_qplan.version = keyed_streams["qplan app"][1]
 
-        io.stderr:write("Finished updating qplan data\n")
+        -- Get qplan data
+        qplan_streams = get_app_data(socket, "=====GET app qplan")
+        m_qplan = QPlanParser.parseLines(qplan_streams["data"])
+        m_qplan.version = qplan_streams["app qplan"][1]
+
+        io.stderr:write("Finished updating web data\n")
         socket:close()
 end
 
@@ -80,6 +86,7 @@ end
 function get_qplan_data(req)
         local qplan = req.qplan
 
+        -- TODO: Figure out where the track variable comes from
         local track_index = get_track_index(req, track)
         local triage_index = get_triage_index(req, triage)
 
@@ -105,6 +112,7 @@ function get_qplan_data(req)
 
         return result
 end
+
 
 --------------------------------------------------------------------------------
 -- Looks up track index for track based on query params of request.
